@@ -11,8 +11,11 @@ b_tetrimino =. 2 2 $ 4 4 4 4
 z_tetrimino =. 2 3 $ 5 5 0 0 5 5 
 s_tetrimino =. 2 3 $ 0 5 5 5 5 0 
 
+NB. initialize random number generator 
+NB. with current seconds as seed
+9!:1 (". 6!:0 'ss') 
 
-tetriminos =: l_tetrimino;j_tetrimino;i_tetrimino; b_tetrimino;t_tetrimino;z_tetrimino;b_tetrimino
+tetriminos =: l_tetrimino;j_tetrimino;i_tetrimino; b_tetrimino;t_tetrimino;z_tetrimino;s_tetrimino
 
 can_put_in_matrix =: 3 : 0
 
@@ -24,7 +27,7 @@ can_put_in_matrix =: 3 : 0
  game =. > 3 { y
  game_width  =. 1 { $ game
  game_height =. 0 { $ game
- is_inside =. (xpos >: 0) *. (ypos >: 0) *. ( (xpos+tetrimino_width) < game_width) *. ((ypos+tetrimino_height) < game_height)
+ is_inside =. (xpos >: 0) *. (ypos >: 0) *. ( (xpos+tetrimino_width - 1) < game_width) *. ((ypos+tetrimino_height - 1) < game_height)
 
  hits =. 0
  if. is_inside do.
@@ -36,6 +39,17 @@ can_put_in_matrix =: 3 : 0
  NB.smoutput (ypos+tetrimino_height)
  NB.smoutput (game_height)
  is_inside *. (hits = 0)  
+)
+
+remove_full_rows =: 3 : 0
+  row_width =. 1 { $ y
+  rows =. 0 { $ y
+   
+  bin_game =. >&0 y
+  full_rows =. -.@=&row_width +/"1 bin_game
+  full_row_count =. +/ full_rows
+  padding =. ((rows - full_row_count), row_width) $ 0
+  padding , full_rows # y
 )
 
 
@@ -110,15 +124,21 @@ if. c = KEY_UP_ncurses_ do.
    current =. rotate current
    needs_refresh =. 1
 elseif. c = KEY_RIGHT_ncurses_ do.
-   game =: put_in_matrix (current*_1);k;j;game
-   j =. j + 1
-   needs_refresh =. 1
+   game_tmp =. put_in_matrix (current*_1);k;j;game
+   if. can_put_in_matrix current;k;(j + 1);game_tmp do.
+      game =: game_tmp
+      j =. j + 1
+      needs_refresh =. 1
+   end.
 elseif. c = KEY_LEFT_ncurses_ do.
-   game =: put_in_matrix (current*_1);k;j;game
-   j =. j - 1
-   needs_refresh =. 1
+   game_tmp =. put_in_matrix (current*_1);k;j;game
+   if. can_put_in_matrix (current);k;(j - 1);game_tmp do.
+      game =: game_tmp
+      j =. j - 1
+      needs_refresh =. 1
+   end.
 elseif. 1 do. 
-   if. ((seconds_from_start'') - timestamp) < 0.3 do.
+   if. ((seconds_from_start'') - timestamp) < 0.1 do.
       continue.
    else.
       timestamp =. seconds_from_start'' 
@@ -154,6 +174,7 @@ end.
 unget_wch_ncurses_ c
 if. needs_refresh do.
    game =: put_in_matrix (current);k;j;game
+   game =: remove_full_rows game
    drawGame vin; game
    wrefresh_ncurses_  vin
    needs_refresh =. 0

@@ -106,6 +106,7 @@ vin =. newwin_ncurses_ 25 50 0 0
 
 cbreak_ncurses_''
 nodelay_ncurses_ vin ;'1'
+curs_set_ncurses_ 0
 keypad_ncurses_ vin;'1'
 scrollok_ncurses_ vin;'1'
 k=:0
